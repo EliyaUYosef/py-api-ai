@@ -3,3 +3,11 @@ __pycache__
 .env
 env.sh
 requirements.txt
+venv/
+venv/*
+/venv
+*venv*
+keys
+keys/*
+*.json
+*.logkeys/docai-service-account.json
