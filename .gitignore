@@ -11,3 +11,4 @@ keys
 keys/*
 *.json
 *.logkeys/docai-service-account.json
+keys/docai-service-account.json
