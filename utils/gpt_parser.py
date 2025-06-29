@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
-from utils.cleaner import clean_docai_json, clean_docai_json_for_image_request  # ודא שהקובץ קיים
+from utils.cleaner import clean_docai_json_for_file_request, clean_docai_json_for_image_request  # ודא שהקובץ קיים
 from utils.docai_extractor import save_docai_response  # ודא שהקובץ קיים
 
 load_dotenv()
@@ -23,8 +23,8 @@ def parse_docai_json_with_gpt(docai_data: dict, user_id: int, timestamp: str, ex
     # return cleaned_data
 
     prompt = f"""
-ensure all field names in the returned JSON use just snake_case format
-
+ensure all field names in the returned JSON use just snake_case format.
+If any of the requested fields are missing, skip them gracefully and continue with the rest without failing.
 The following data is a raw JSON output from Google Document AI, representing a scanned receipt or invoice. Please process it and return a structured JSON object with the following fields:
 
 1. **biz_details**:
@@ -57,6 +57,37 @@ The following data is a raw JSON output from Google Document AI, representing a 
 
 Here is the raw data:
 {json.dumps(cleaned_data, ensure_ascii=False)}
+
+Always return a JSON object with a fixed and complete structure.
+{json.dumps({
+  "biz_details": {
+    "business_name": "",
+    "business_address": "",
+    "vat_number": ""
+  },
+  "transaction_time": {
+    "purchase_date": "",
+    "purchase_time": "",
+    "unix_ts": 0
+  },
+  "customer": {
+    "customer_name": "",
+    "customer_phone": "",
+    "membership_status": ""
+  },
+  "receipt_number": "",
+  "total_amount": 0,
+  "payment_method": "",
+  "total_vat_amount": 0,
+  "products": [
+    {
+      "product_name": "",
+      "quantity": 0,
+      "unit_price": 0,
+      "total_price": 0
+    }
+  ]
+}, ensure_ascii=False)}
 """
 
     try:
@@ -79,9 +110,13 @@ Here is the raw data:
         # אחרי הניקוי מ-```json ... ```
         parsed_json = json.loads(content)
 
-        purchase_date = parsed_json["transaction_time"]["purchase_date"]
-        purchase_time = parsed_json["transaction_time"]["purchase_time"]
-        parsed_json["transaction_time"]["unix_timestamp"] = get_unix_timestamp(purchase_date, purchase_time)
+        transaction_time = parsed_json.get("transaction_time", {})
+        purchase_date = transaction_time.get("purchase_date")
+        purchase_time = transaction_time.get("purchase_time", "00:00")  # ברירת מחדל לשעה
+
+        if purchase_date:
+            parsed_json["transaction_time"]["unix_ts"] = get_unix_timestamp(purchase_date, purchase_time)
+        
 
         save_docai_response(content, user_id=user_id, timestamp=timestamp, directory="logs/gpt_responses")
         
@@ -90,7 +125,9 @@ Here is the raw data:
         print("🧨 שגיאה בפענוח תגובת GPT:", e)
         return {"error": "Parsing failed"}
     
-def get_unix_timestamp(purchase_date: str, purchase_time: str) -> int:
-    dt_str = f"{purchase_date} {purchase_time}"
-    dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+def get_unix_timestamp(purchase_date: str, purchase_time: str | None = None) -> int:
+    if not purchase_time or purchase_time.lower() == "none":
+        dt = datetime.strptime(purchase_date, "%Y-%m-%d")
+    else:
+        dt = datetime.strptime(f"{purchase_date} {purchase_time}", "%Y-%m-%d %H:%M")
     return int(dt.timestamp())

@@ -164,3 +164,6 @@ MIT
 ---
 
 > Created with ❤️ by Eliya
+
+RUN ALL BY :
+  ./run_docai.sh

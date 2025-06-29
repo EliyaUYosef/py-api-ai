@@ -1,14 +1,27 @@
-logs
+
+# Ignore Python cache files
 __pycache__
-.env
-env.sh
-requirements.txt
 venv/
 venv/*
 /venv
 *venv*
+
+# These files are used to store environment variables and should not be committed to version control.
+.env
+env.sh
 keys
 keys/*
-*.json
-*.logkeys/docai-service-account.json
 keys/docai-service-account.json
+.env
+requirements.txt
+
+# Ignore Python bytecode files
+TODO
+*.json
+*.log
+logs
+.vscode
+
+
+
+
