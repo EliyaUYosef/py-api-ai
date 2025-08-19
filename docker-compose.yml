@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  receipt-api:
+    build: .
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/docai-service-account.json
+      - MONGO_URI=mongodb://host.docker.internal:27017
+    restart: unless-stopped
+    networks:
+      - receipt_manager
+networks:
+  receipt_manager:
+    external: true
+
+  
