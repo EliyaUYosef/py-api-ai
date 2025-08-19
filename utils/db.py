@@ -1,17 +1,14 @@
+import os
 from pymongo import MongoClient
 from datetime import datetime
-import time
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client.ocr_database
-collection = db.results
+mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+client = MongoClient(mongo_uri)
+db = client.ocr_db
+collection = db.receipts
+
 
 def save_ocr_record(text: str, img_path: str = None, txt_path: str = None, parsed_data: dict = None, user_id: int = None):
-    from pymongo import MongoClient
-
-    client = MongoClient()  # או mongo://localhost:27017 אם תרצה מפורש
-    db = client["ocr_db"]
-    collection = db["receipts"]
 
     timestamp = int(datetime.now().timestamp())
     

@@ -1,3 +1,4 @@
+# utils/cleaner.py
 def clean_docai_json_for_file_request(data: dict) -> dict:
     data = data.copy()
 

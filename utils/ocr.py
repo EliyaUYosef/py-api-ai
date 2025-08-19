@@ -1,50 +1,47 @@
+# utils/ocr.py
 import os
-import io
+import random
 from datetime import datetime
-from PIL import Image
 from .db import save_ocr_record
 from .docai_extractor import save_docai_response
 from .docai_parser import parse_receipt_with_docai
 from .gpt_parser import parse_docai_json_with_gpt 
 from dotenv import load_dotenv
-
-load_dotenv()
+from .s3_utils import upload_to_s3
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "../logs/images")
 os.makedirs(BASE_DIR, exist_ok=True)
 
-def extract_text_from_file(file_bytes: bytes, filename: str, content_type: str, user_id: int) -> dict:
+def extract_text_from_file(file_bytes: bytes, filename: str, request_ts: int) -> dict:
     try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         extension = os.path.splitext(filename)[1] or ".bin"
-        file_name = f"{user_id}_{timestamp}{extension}"
+        random_suffix = random.randint(1000, 9999)
+        file_name = f"{request_ts}_{random_suffix}{extension}"
         file_path = os.path.join(BASE_DIR, file_name)
 
         # שמירת הקובץ
         with open(file_path, "wb") as f:
             f.write(file_bytes)
+            print(f"📥 File saved locally to: {file_path}")      
 
-        # 🧠 טיפול בקובץ טקסט (txt)
-        if content_type == "text/plain":
-            text = file_bytes.decode("utf-8")
-            parsed_data = parse_docai_json_with_gpt({"text": text}, user_id=user_id, timestamp=timestamp)
+        load_dotenv()          
+        # תומך גם ב-pdf וגם בתמונה
+        parsed_data = parse_receipt_with_docai(
+            file_path=file_path,
+            project_id=os.getenv("GOOGLE_CLOUD_PROJECT_ID"),
+            location=os.getenv("GOOGLE_CLOUD_LOCATION"),
+            processor_id=os.getenv("GOOGLE_CLOUD_PROCESSOR_ID"),
+        )
 
-        else:
-            # תומך גם ב-pdf וגם בתמונה
-            parsed_data = parse_receipt_with_docai(
-                file_path=file_path,
-                project_id=os.getenv("GOOGLE_CLOUD_PROJECT_ID"),
-                location=os.getenv("GOOGLE_CLOUD_LOCATION"),
-                processor_id=os.getenv("GOOGLE_CLOUD_PROCESSOR_ID"),
-            )
-            save_docai_response(parsed_data, user_id=user_id, timestamp=timestamp)
-            parsed_data = parse_docai_json_with_gpt(parsed_data, user_id=user_id, timestamp=timestamp,extension=extension)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"🗑️ File removed: {file_path}")
 
-        # שמירה למסד הנתונים
-        if os.getenv("SAVE_TO_DB", "true").lower() == "true":
-            save_ocr_record("", file_path, None, parsed_data, user_id=user_id)
+        save_docai_response(parsed_data, timestamp=request_ts)
+        parsed_data = parse_docai_json_with_gpt(parsed_data, timestamp=request_ts)
 
-        return parsed_data
+
+        return parsed_data,
 
     except Exception as e:
         print("🚨 OCR ERROR:", e)

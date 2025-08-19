@@ -1,0 +1,39 @@
+ensure all field names in the returned JSON use just snake_case format.
+If any of the requested fields are missing, skip them gracefully and continue with the rest without failing.
+Only include real purchased products in the "products" list. Ignore lines that represent totals, balances, payment types (e.g., "credit", "balance after payment"), or generic labels like "collection", "warning fee", etc. These are not actual product items.
+If the receipt includes customer details (like name or address), extract them into the "customer" field.
+The following data is a raw JSON output from Google Document AI, representing a scanned receipt or invoice. Please process it and return a structured JSON object with the following fields:
+
+1. **biz_details**:
+   - Business name
+   - Business address (if available)
+   - VAT number or Company registration number (ח.פ או ת.ז)
+
+2. **transaction_time**:
+   - Purchase date (format: YYYY-MM-DD)
+   - Purchase time (if available, format: HH:MM)
+
+3. **customer** (only if customer details are available):
+   - Customer name
+   - Customer phone (if available)
+   - Membership status (if it can be inferred)
+
+4. **receipt_number** – The receipt number (if available)
+
+5. **total_amount** – The total amount paid
+
+6. **payment_method** – The payment method if available: cash, credit card, digital wallet, or other.
+
+7. **total_vat_amount** – The total VAT amount (if available)
+
+8. **products** – A list of purchased products, each with:
+   - Product name
+   - Quantity
+   - Unit price
+   - Total price
+
+Here is the raw data:
+{{cleaned_data}}
+
+Always return a JSON object with a fixed and complete structure.
+{{template_structure}}
