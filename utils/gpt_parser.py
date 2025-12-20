@@ -27,7 +27,7 @@ def get_unix_timestamp(purchase_date: str, purchase_time: str | None = None) -> 
         dt = datetime.strptime(f"{purchase_date} {purchase_time}", "%Y-%m-%d %H:%M")
     return int(dt.timestamp())
 
-def parse_docai_json_with_gpt(docai_data: dict, timestamp: str) -> dict:
+def parse_docai_json_with_gpt(docai_data: dict, safe_file_name: str) -> dict:
     
     cleaned_data = clean_docai_json_for_file_request(docai_data)
 
@@ -66,7 +66,7 @@ def parse_docai_json_with_gpt(docai_data: dict, timestamp: str) -> dict:
         if purchase_date:
             parsed_json["transaction_time"]["unix_ts"] = get_unix_timestamp(purchase_date, purchase_time)
     
-        save_docai_response(content, timestamp=timestamp, directory="logs/gpt_responses")
+        save_docai_response(content, safe_file_name=safe_file_name, directory="logs/gpt_responses")
         
         return parsed_json
     except Exception as e:

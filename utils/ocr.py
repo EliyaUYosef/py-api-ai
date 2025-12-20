@@ -1,23 +1,21 @@
 # utils/ocr.py
 import os
-import random
-from datetime import datetime
-from .db import save_ocr_record
 from .docai_extractor import save_docai_response
 from .docai_parser import parse_receipt_with_docai
 from .gpt_parser import parse_docai_json_with_gpt 
 from dotenv import load_dotenv
-from .s3_utils import upload_to_s3
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "../logs/images")
 os.makedirs(BASE_DIR, exist_ok=True)
 
-def extract_text_from_file(file_bytes: bytes, filename: str, request_ts: int) -> dict:
+def extract_text_from_file(file_bytes: bytes, filename: str, request_ts: int, request_id: int) -> dict:
     try:
         extension = os.path.splitext(filename)[1] or ".bin"
-        random_suffix = random.randint(1000, 9999)
-        file_name = f"{request_ts}_{random_suffix}{extension}"
+        file_name = f"{request_ts}_{request_id}_{extension}"
         file_path = os.path.join(BASE_DIR, file_name)
+
+        # יצירת תיקייה בלבד אם לא קיימת
+        os.makedirs(BASE_DIR, exist_ok=True)
 
         # שמירת הקובץ
         with open(file_path, "wb") as f:
@@ -32,16 +30,15 @@ def extract_text_from_file(file_bytes: bytes, filename: str, request_ts: int) ->
             location=os.getenv("GOOGLE_CLOUD_LOCATION"),
             processor_id=os.getenv("GOOGLE_CLOUD_PROCESSOR_ID"),
         )
-
+        safe_file_name=f"{request_ts}_{request_id}"
+        save_docai_response(parsed_data, safe_file_name=safe_file_name)
+        parsed_data = parse_docai_json_with_gpt(parsed_data, safe_file_name=safe_file_name)
+        
         if os.path.exists(file_path):
             os.remove(file_path)
             print(f"🗑️ File removed: {file_path}")
-
-        save_docai_response(parsed_data, timestamp=request_ts)
-        parsed_data = parse_docai_json_with_gpt(parsed_data, timestamp=request_ts)
-
-
-        return parsed_data,
+        
+        return parsed_data
 
     except Exception as e:
         print("🚨 OCR ERROR:", e)
