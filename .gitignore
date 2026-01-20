@@ -9,6 +9,7 @@ venv/*
 .venv
 .venv/*
 *venv*
+venv*
 
 # These files are used to store environment variables and should not be committed to version control.
 .env
@@ -16,8 +17,10 @@ env.sh
 keys
 keys/*
 keys/docai-service-account.json
+*/docai-service-account.json
 .env
 requirements.txt
+env.
 
 # Ignore Python bytecode files
 TODO
